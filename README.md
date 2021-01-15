@@ -2,6 +2,8 @@
 
 Table-Top Infrastructure for the H2020 STRATEGY project.
 
+![TTI](https://github.com/STRATEGY-EU/TTI/blob/main/img/table-top-infrastructure.png)
+
 ## Explanation
 
 To run a technology-supported trial, exercise, training or table top, the EU-funded DRIVER+ project has developed a complete setup. Within the EU-funded H2020 STRATEGY project, this infrastructure is further refined and adapted to support the 7 tabletops and the final exercise. It consists of:
