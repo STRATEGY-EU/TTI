@@ -1,6 +1,6 @@
 # TTI
 
-Table-Top Infrastructure for the H2020 STRATEGY project.
+Table-Top Infrastructure for the [H2020 STRATEGY project](https://strategy-project.eu/), which is based on the [KP7 DRIVER+](https://www.driver-project.eu) infrastructure. To read more about the developement results, click [here](https://github.com/DRIVER-EU), or browse a list of dissemination results [here](https://github.com/DRIVER-EU/dissemination). In particular, the [animation](https://github.com/DRIVER-EU/dissemination/blob/master/animations/20190929_Animatie%20Driver_BASIC%20SUBS_Elke%20Uijtewaal_DEF.mp4) and the [Test-bed design specification v3](https://github.com/DRIVER-EU/dissemination/blob/master/specifications/DRIVER%2B_D923.23_Reference%20implementation%20v3%20-%20Final%20release%20of%20the%20test-bed%20reference%20implementation.pdf).
 
 ![TTI](https://github.com/STRATEGY-EU/TTI/blob/main/img/table-top-infrastructure.png)
 
