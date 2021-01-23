@@ -138,7 +138,7 @@ services:
   #     - trial-data:/app/trials
 
   webmail:
-    image: driver-roundcube
+    image: drivereu/driver-roundcube
     hostname: webmail
     container_name: webmail
     # build:
@@ -159,7 +159,7 @@ services:
     depends_on:
       - mailserver
   mailserver:
-    image: driver-mailserver
+    image: drivereu/driver-mailserver
     hostname: ${HOSTNAME}
     domainname: ${DOMAINNAME}
     container_name: ${CONTAINER_NAME}
@@ -254,7 +254,7 @@ services:
       - SYS_PTRACE
     # restart: always
   mailgateway:
-    image: driver-mailgateway
+    image: drivereu/driver-mailgateway
     container_name: mailgateway
     # build:
     #   context: ./../../packages/server
@@ -285,9 +285,9 @@ services:
       static-network:
         ipv4_address: 10.5.0.10
       default:
-    # restart: always
+    restart: always
   mailmonitor:
-    image: driver-mailmonitor
+    image: drivereu/driver-mailmonitor
     container_name: mailmonitor
     # build:
     #   context: ./../../packages/server-monitor
