@@ -85,6 +85,7 @@ services:
 
   bootstrapper:
     image: drivereu/silent-producer:latest
+    hostname: bootstrapper
     depends_on:
       - broker
       - schema_registry
@@ -99,6 +100,7 @@ services:
 
   time_service:
     image: drivereu/test-bed-time-service:latest
+    hostname: time_service
     links:
       - broker
       - schema_registry
@@ -111,55 +113,35 @@ services:
 
   large_file_service:
     image: drivereu/large-file-service:latest
+    hostname: large_file_service
     ports:
       - "9090:9090"
     environment:
       HOST: localhost
       PORT: 9090
 
-  # trial_management_tool:
-  #   image: drivereu/trial-management-tool:latest
-  #   links:
-  #     - broker
-  #     - schema_registry
-  #   ports:
-  #     - '3210:3210'
-  #   environment:
-  #     CLIENT_ID: TB-TrialMgmt
-  #     KAFKA_HOST: broker:9092
-  #     SCHEMA_REGISTRY: http://schema_registry:3502
-  #     TRIAL_MANAGER_SERVER_PORT: 3210
-  #     PRODUCE: system_request_change_of_trial_stage,system_tm_phase_message,system_tm_role_player,system_tm_session_mgmt,large_data_update
-  #     SSL: 'false'
-  #     SSL_PFX: certs/TB-TrialMgmt.p12
-  #     SSL_PASSPHRASE: changeit
-  #     SSL_CA: certs/test-ca.pem
-  #   volumes:
-  #     - trial-data:/app/trials
-
-  webmail:
-    image: driver-roundcube
-    hostname: webmail
-    container_name: webmail
-    # build:
-    #   context: ./../roundcube_driver-eu
-    #   dockerfile: Dockerfile
-    environment:
-      - ROUNDCUBEMAIL_DEFAULT_HOST=10.5.0.5
-      - ROUNDCUBEMAIL_SMTP_SERVER=10.5.0.5
-      - ROUNDCUBEMAIL_DEFAULT_PORT=143
-      - ROUNDCUBEMAIL_SMTP_PORT=25
+  trial_management_tool:
+    image: trial-management-tool:latest
+    links:
+      - broker
+      - schema_registry
     ports:
-      - "80:80"
-    networks:
-      static-network:
-        ipv4_address: 10.5.0.6
-      default:
-      backend:
-    depends_on:
-      - mailserver
+      - "3210:3210"
+    environment:
+      CLIENT_ID: TB-TrialMgmt
+      KAFKA_HOST: broker:9092
+      SCHEMA_REGISTRY: http://schema_registry:3502
+      TRIAL_MANAGER_SERVER_PORT: 3210
+      PRODUCE: simulation_session_mgmt,simulation_time_control,simulation_time_mgmt,simulation_entity_post,system_tm_role_player,system_request_change_of_trial_stage,system_tm_phase_message,system_large_data_update
+      # SSL: "false"
+      # SSL_PFX: certs/TB-TrialMgmt.p12
+      # SSL_PASSPHRASE: changeit
+      # SSL_CA: certs/test-ca.pem
+    volumes:
+      - trial-data:/app/trials
+
   mailserver:
-    image: driver-mailserver
+    image: drivereu/driver-mailserver
     hostname: ${HOSTNAME}
     domainname: ${DOMAINNAME}
     container_name: ${CONTAINER_NAME}
@@ -169,9 +151,6 @@ services:
       - "587:587"
       - "993:993"
       - "3000:3000"
-    # build:
-    #   context: ./../../packages/mail-manager/mail-server-api
-    #   dockerfile: Dockerfile
     networks:
       static-network:
         ipv4_address: 10.5.0.5
@@ -252,13 +231,30 @@ services:
     cap_add:
       - NET_ADMIN
       - SYS_PTRACE
-    # restart: always
+    restart: always
+
+  webmail:
+    image: drivereu/driver-roundcube
+    hostname: webmail
+    container_name: webmail
+    environment:
+      - ROUNDCUBEMAIL_DEFAULT_HOST=10.5.0.5
+      - ROUNDCUBEMAIL_SMTP_SERVER=10.5.0.5
+      - ROUNDCUBEMAIL_DEFAULT_PORT=143
+      - ROUNDCUBEMAIL_SMTP_PORT=25
+    ports:
+      - "80:80"
+    networks:
+      static-network:
+        ipv4_address: 10.5.0.6
+      default:
+      backend:
+    depends_on:
+      - mailserver
+
   mailgateway:
-    image: driver-mailgateway
+    image: drivereu/driver-mailgateway
     container_name: mailgateway
-    # build:
-    #   context: ./../../packages/server
-    #   dockerfile: Dockerfile
     ports:
       # websocket notifications
       - "9996:9996"
@@ -285,13 +281,11 @@ services:
       static-network:
         ipv4_address: 10.5.0.10
       default:
-    # restart: always
+    restart: always
+
   mailmonitor:
-    image: driver-mailmonitor
+    image: drivereu/driver-mailmonitor
     container_name: mailmonitor
-    # build:
-    #   context: ./../../packages/server-monitor
-    #   dockerfile: Dockerfile
     ports:
       - "4200:4200"
     links:
@@ -303,7 +297,7 @@ services:
         ipv4_address: 10.5.0.11
       default:
       backend:
-    # restart: always
+    restart: always
 
 volumes:
   maildata:
