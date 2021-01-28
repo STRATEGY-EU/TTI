@@ -116,12 +116,15 @@ services:
     hostname: large_file_service
     ports:
       - "9090:9090"
+    networks:
+      - default
+      - backend
     environment:
       HOST: localhost
       PORT: 9090
 
   trial_management_tool:
-    image: trial-management-tool:latest
+    image: drivereu/trial-management-tool:latest
     links:
       - broker
       - schema_registry
@@ -139,6 +142,27 @@ services:
       # SSL_CA: certs/test-ca.pem
     volumes:
       - trial-data:/app/trials
+
+  homepage:
+    image: strategyeu/homepage:latest
+    depends_on:
+      - broker
+    ports:
+      - 80:80
+      - 443:443
+    environment:
+      title: STRATEGY
+      email: erik.vullings@tno.nl
+      # ssl: true  # When running in production, and you want to use letsencrypt to get the certificates.
+      tmt: trial_management_tool:3210
+      mail: webmail:80
+      mailapi: mailmonitor:4200
+      lfs: large_file_service:9090
+      time: time_service:8100
+      schemas: kafka_schema_registry_ui:8000
+      topics: kafka_topics_ui:8000
+    volumes:
+      - certs:/usr/src/app/certs # For saving the letsencrypt certificates
 
   mailserver:
     image: drivereu/driver-mailserver
@@ -243,7 +267,7 @@ services:
       - ROUNDCUBEMAIL_DEFAULT_PORT=143
       - ROUNDCUBEMAIL_SMTP_PORT=25
     ports:
-      - "80:80"
+      - "3080:80"
     networks:
       static-network:
         ipv4_address: 10.5.0.6
@@ -307,6 +331,8 @@ volumes:
   mailconfig:
     driver: local
   trial-data:
+  certs:
+
 networks:
   static-network:
     driver: bridge
