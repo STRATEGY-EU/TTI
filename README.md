@@ -18,8 +18,14 @@ To run a technology-supported trial, exercise, training or table top, the EU-fun
 All services are running in Docker containers, so you need to have Docker running on your system. In the `docker` folder, several TTI configurations can be found, including specific instructions. To start up all services, do:
 
 ```bash
+git clone https://github.com/STRATEGY-EU/TTI.git
+cd TTI/docker/local
 docker-compose pull
 docker-compose up -d
 ```
+
+Or watch the instructions:
+
+![Running the TTI](img/docker.gif)
 
 To show the status of all services, you can, for example, use `dockly` (you need to have [node.js](https://nodejs.org) installed), which you can install using `npm i -g dockly` (on Linux, this may require `sudo` privileges). Alternatively, you can simply do `docker ps`.
