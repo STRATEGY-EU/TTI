@@ -44,18 +44,17 @@ services:
 
   kafka_rest:
     image: confluentinc/cp-kafka-rest:latest
-    hostname: kafka_rest
     links:
       - zookeeper
       - schema_registry
       - broker
     ports:
-      - "8082:8082"
+      - "8085:8082"
     environment:
       KAFKA_REST_HOST_NAME: kafka_rest
       KAFKA_REST_BOOTSTRAP_SERVERS: "PLAINTEXT://broker:9092"
       KAFKA_REST_ZOOKEEPER_CONNECT: "zookeeper:3500"
-      KAFKA_REST_LISTENERS: "http://0.0.0.0:8082"
+      KAFKA_REST_LISTENERS: "http://0.0.0.0:8085"
       KAFKA_REST_SCHEMA_REGISTRY_URL: "http://schema_registry:3502"
       KAFKA_CONSUMER_REQUEST_TIMEOUT_MS: 30000
       KAFKA_REST_ACCESS_CONTROL_ALLOW_METHODS: "GET,POST,PUT,DELETE,OPTIONS"
@@ -69,7 +68,7 @@ services:
     ports:
       - "3600:8000"
     environment:
-      KAFKA_REST_PROXY_URL: "http://kafka_rest:8082"
+      KAFKA_REST_PROXY_URL: "http://kafka_rest:8085"
       PROXY: "true"
 
   kafka_schema_registry_ui:
@@ -149,8 +148,9 @@ services:
       - broker
     ports:
       - 80:80
-      - 443:443
+      - 443:443 # When running in production, turn it on
     environment:
+      hostname: localhost
       title: STRATEGY
       email: erik.vullings@tno.nl
       # ssl: true  # When running in production, and you want to use letsencrypt to get the certificates.
@@ -163,6 +163,20 @@ services:
       topics: kafka_topics_ui:8000
     volumes:
       - certs:/usr/src/app/certs # For saving the letsencrypt certificates
+
+  kafdrop:
+    image: obsidiandynamics/kafdrop:latest
+    depends_on:
+      - broker
+    ports:
+      - 9000:9000
+    environment:
+      hostname: kafdrop
+      KAFKA_BROKERCONNECT: broker:9092
+      SCHEMAREGISTRY_CONNECT: http://schema_registry:3502
+      JVM_OPTS: "-Xms32M -Xmx64M"
+      SERVER_SERVLET_CONTEXTPATH: /
+      CMD_ARGS: "--message.format=AVRO"
 
   mailserver:
     image: drivereu/driver-mailserver
