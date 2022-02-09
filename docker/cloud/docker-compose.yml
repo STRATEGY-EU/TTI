@@ -1,0 +1,391 @@
+---
+version: "3"
+services:
+  zookeeper:
+    image: confluentinc/cp-zookeeper:latest
+    hostname: zookeeper
+    ports:
+      - "3500:3500"
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 3500
+      ZOOKEEPER_TICK_TIME: 2000
+
+  broker:
+    image: confluentinc/cp-kafka:latest
+    hostname: broker
+    restart: always
+    depends_on:
+      - zookeeper
+    links:
+      - zookeeper
+    ports:
+      - "3501:3501"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: "zookeeper:3500"
+      KAFKA_ADVERTISED_LISTENERS: "EXTERNAL://localhost:3501,PLAINTEXT://broker:9092"
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: "EXTERNAL:PLAINTEXT,PLAINTEXT:PLAINTEXT"
+      KAFKA_LISTENERS: "EXTERNAL://0.0.0.0:3501,PLAINTEXT://0.0.0.0:9092"
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_DEFAULT_REPLICATION_FACTOR: 1
+      KAFKA_MESSAGE_MAX_BYTES: 100000000
+      KAFKA_REPLICA_FETCH_MAX_BYTES: 100000000
+
+  schema_registry:
+    image: confluentinc/cp-schema-registry:latest
+    hostname: schema_registry
+    restart: always
+    depends_on:
+      - zookeeper
+      - broker
+    links:
+      - zookeeper
+      - broker
+    ports:
+      - "3502:3502"
+    environment:
+      SCHEMA_REGISTRY_HOST_NAME: schema_registry
+      SCHEMA_REGISTRY_LISTENERS: "http://0.0.0.0:3502"
+      SCHEMA_REGISTRY_KAFKASTORE_CONNECTION_URL: "zookeeper:3500"
+      SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS: "PLAINTEXT://broker:9092"
+
+  kafka_rest:
+    image: confluentinc/cp-kafka-rest:latest
+    restart: always
+    depends_on:
+      - zookeeper
+      - schema_registry
+      - broker
+    links:
+      - zookeeper
+      - schema_registry
+      - broker
+    ports:
+      - "8085:8082"
+    environment:
+      KAFKA_REST_HOST_NAME: kafka_rest
+      KAFKA_REST_BOOTSTRAP_SERVERS: "PLAINTEXT://broker:9092"
+      KAFKA_REST_ZOOKEEPER_CONNECT: "zookeeper:3500"
+      KAFKA_REST_LISTENERS: "http://0.0.0.0:8085"
+      KAFKA_REST_SCHEMA_REGISTRY_URL: "http://schema_registry:3502"
+      KAFKA_CONSUMER_REQUEST_TIMEOUT_MS: 30000
+      KAFKA_REST_ACCESS_CONTROL_ALLOW_METHODS: "GET,POST,PUT,DELETE,OPTIONS"
+      KAFKA_REST_ACCESS_CONTROL_ALLOW_ORIGIN: "*"
+
+  kafka_topics_ui:
+    image: landoop/kafka-topics-ui:latest
+    hostname: kafka_topics_ui
+    depends_on:
+      - broker
+      - kafka_rest
+      - schema_registry
+    links:
+      - kafka_rest
+    ports:
+      - "3600:8000"
+    environment:
+      KAFKA_REST_PROXY_URL: "http://kafka_rest:8085"
+      PROXY: "true"
+
+  kafka_schema_registry_ui:
+    image: landoop/schema-registry-ui:latest
+    hostname: kafka_schema_registry_ui
+    depends_on:
+      - broker
+      - kafka_rest
+      - schema_registry
+    links:
+      - schema_registry
+    ports:
+      - "3601:8000"
+    environment:
+      SCHEMAREGISTRY_URL: "http://schema_registry:3502"
+      PROXY: "true"
+
+  bootstrapper:
+    image: drivereu/silent-producer:latest
+    hostname: bootstrapper
+    depends_on:
+      - broker
+      - schema_registry
+    environment:
+      KAFKA_HOST: broker:9092
+      SCHEMA_REGISTRY: http://schema_registry:3502
+      PRODUCE_TOPICS: simulation_entity_item,simulation_time_mgmt,system_topic_access_invite,simulation_request_startinject,simulation_entity_post,standard_named_geojson,system_heartbeat,system_logging
+      # simulation_request_transport,lcms_plots,simulation_affected_area,simulation_sumo_configuration,standard_cap,chain_power,chain_care,chain_flood,chain,flood_prediction_geojson,flood_actual,system_timing
+    restart: on-failure
+    volumes:
+      - ./schemas:/src/schemas
+
+  time_service:
+    image: drivereu/test-bed-time-service:latest
+    hostname: time_service
+    depends_on:
+      - broker
+      - schema_registry
+    links:
+      - broker
+      - schema_registry
+    ports:
+      - "8100:8100"
+    environment:
+      KAFKA_BROKER_URL: broker:9092
+      SCHEMA_REGISTRY_URL: http://schema_registry:3502
+      AUTO_REGISTER_SCHEMAS: "true"
+
+  large_file_service:
+    image: drivereu/large-file-service:latest
+    hostname: large_file_service
+    depends_on:
+      - broker
+      - schema_registry
+    ports:
+      - "9090:9090"
+    networks:
+      - default
+      - backend
+    environment:
+      HOST: localhost
+      PORT: 9090
+
+  trial_management_tool:
+    image: drivereu/trial-management-tool:latest
+    depends_on:
+      - broker
+      - schema_registry
+    links:
+      - broker
+      - schema_registry
+    ports:
+      - "3210:3210"
+    environment:
+      CLIENT_ID: TB-TrialMgmt
+      KAFKA_HOST: broker:9092
+      SCHEMA_REGISTRY: http://schema_registry:3502
+      TRIAL_MANAGER_SERVER_PORT: 3210
+      PRODUCE: simulation_session_mgmt,simulation_time_control,simulation_time_mgmt,simulation_entity_post,system_tm_role_player,system_request_change_of_trial_stage,system_tm_phase_message,system_large_data_update
+      # SSL: "false"
+      # SSL_PFX: certs/TB-TrialMgmt.p12
+      # SSL_PASSPHRASE: changeit
+      # SSL_CA: certs/test-ca.pem
+    volumes:
+      - trial-data:/app/trials
+
+  # homepage:
+  #   image: strategyeu/homepage:latest
+  #   depends_on:
+  #     - broker
+  #     - schema_registry
+  #   ports:
+  #     - 80:80
+  #     - 443:443 # When running in production, turn it on
+  #   environment:
+  #     hostname: localhost
+  #     title: STRATEGY
+  #     email: erik.vullings@tno.nl
+  #     # ssl: true  # When running in production, and you want to use letsencrypt to get the certificates.
+  #     tmt: trial_management_tool:3210
+  #     mail: webmail:80
+  #     mailapi: mailmonitor:4200
+  #     lfs: large_file_service:9090
+  #     time: time_service:8100
+  #     schemas: kafka_schema_registry_ui:8000
+  #     topics: kafka_topics_ui:8000
+  #   volumes:
+  #     - certs:/usr/src/app/certs # For saving the letsencrypt certificates
+
+  kafdrop:
+    image: obsidiandynamics/kafdrop:latest
+    depends_on:
+      - broker
+    ports:
+      - 9000:9000
+    environment:
+      hostname: kafdrop
+      KAFKA_BROKERCONNECT: broker:9092
+      SCHEMAREGISTRY_CONNECT: http://schema_registry:3502
+      JVM_OPTS: "-Xms32M -Xmx64M"
+      SERVER_SERVLET_CONTEXTPATH: /
+      CMD_ARGS: "--message.format=AVRO"
+
+  mailserver:
+    image: drivereu/driver-mailserver
+    depends_on:
+      - broker
+      - schema_registry
+    hostname: ${HOSTNAME}
+    domainname: ${DOMAINNAME}
+    container_name: ${CONTAINER_NAME}
+    ports:
+      - "25:25"
+      - "143:143"
+      - "587:587"
+      - "993:993"
+      - "3000:3000"
+    networks:
+      static-network:
+        ipv4_address: 10.5.0.5
+      default:
+      backend:
+    volumes:
+      - maildata:/var/mail
+      - mailstate:/var/mail-state
+      - mailconfig/:/tmp/docker-mailserver/
+    environment:
+      - DMS_DEBUG=${DMS_DEBUG}
+      - ENABLE_CLAMAV=${ENABLE_CLAMAV}
+      - ONE_DIR=${ONE_DIR}
+      - ENABLE_POP3=${ENABLE_POP3}
+      - ENABLE_FAIL2BAN=${ENABLE_FAIL2BAN}
+      - ENABLE_MANAGESIEVE=${ENABLE_MANAGESIEVE}
+      - OVERRIDE_HOSTNAME=${OVERRIDE_HOSTNAME}
+      - POSTMASTER_ADDRESS=${POSTMASTER_ADDRESS}
+      - POSTSCREEN_ACTION=${POSTSCREEN_ACTION}
+      - REPORT_RECIPIENT=${REPORT_RECIPIENT}
+      - REPORT_SENDER=${REPORT_SENDER}
+      - REPORT_INTERVAL=${REPORT_INTERVAL}
+      - SMTP_ONLY=${SMTP_ONLY}
+      - SSL_TYPE=${SSL_TYPE}
+      - TLS_LEVEL=${TLS_LEVEL}
+      - SPOOF_PROTECTION=${SPOOF_PROTECTION}
+      - ENABLE_SRS=${ENABLE_SRS}
+      - PERMIT_DOCKER=${PERMIT_DOCKER}
+      - VIRUSMAILS_DELETE_DELAY=${VIRUSMAILS_DELETE_DELAY}
+      - ENABLE_POSTFIX_VIRTUAL_TRANSPORT=${ENABLE_POSTFIX_VIRTUAL_TRANSPORT}
+      - POSTFIX_DAGENT=${POSTFIX_DAGENT}
+      - POSTFIX_MAILBOX_SIZE_LIMIT=${POSTFIX_MAILBOX_SIZE_LIMIT}
+      - POSTFIX_MESSAGE_SIZE_LIMIT=${POSTFIX_MESSAGE_SIZE_LIMIT}
+      - ENABLE_SPAMASSASSIN=${ENABLE_SPAMASSASSIN}
+      - SA_TAG=${SA_TAG}
+      - SA_TAG2=${SA_TAG2}
+      - SA_KILL=${SA_KILL}
+      - SA_SPAM_SUBJECT=${SA_SPAM_SUBJECT}
+      - ENABLE_FETCHMAIL=${ENABLE_FETCHMAIL}
+      - FETCHMAIL_POLL=${FETCHMAIL_POLL}
+      - ENABLE_LDAP=${ENABLE_LDAP}
+      - LDAP_START_TLS=${LDAP_START_TLS}
+      - LDAP_SERVER_HOST=${LDAP_SERVER_HOST}
+      - LDAP_SEARCH_BASE=${LDAP_SEARCH_BASE}
+      - LDAP_BIND_DN=${LDAP_BIND_DN}
+      - LDAP_BIND_PW=${LDAP_BIND_PW}
+      - LDAP_QUERY_FILTER_USER=${LDAP_QUERY_FILTER_USER}
+      - LDAP_QUERY_FILTER_GROUP=${LDAP_QUERY_FILTER_GROUP}
+      - LDAP_QUERY_FILTER_ALIAS=${LDAP_QUERY_FILTER_ALIAS}
+      - LDAP_QUERY_FILTER_DOMAIN=${LDAP_QUERY_FILTER_DOMAIN}
+      - DOVECOT_TLS=${DOVECOT_TLS}
+      - DOVECOT_USER_FILTER=${DOVECOT_USER_FILTER}
+      - DOVECOT_PASS_FILTER=${DOVECOT_PASS_FILTER}
+      - ENABLE_POSTGREY=${ENABLE_POSTGREY}
+      - POSTGREY_DELAY=${POSTGREY_DELAY}
+      - POSTGREY_MAX_AGE=${POSTGREY_MAX_AGE}
+      - POSTGREY_AUTO_WHITELIST_CLIENTS=${POSTGREY_AUTO_WHITELIST_CLIENTS}
+      - POSTGREY_TEXT=${POSTGREY_TEXT}
+      - ENABLE_SASLAUTHD=${ENABLE_SASLAUTHD}
+      - SASLAUTHD_MECHANISMS=${SASLAUTHD_MECHANISMS}
+      - SASLAUTHD_MECH_OPTIONS=${SASLAUTHD_MECH_OPTIONS}
+      - SASLAUTHD_LDAP_SERVER=${SASLAUTHD_LDAP_SERVER}
+      - SASLAUTHD_LDAP_SSL=${SASLAUTHD_LDAP_SSL}
+      - SASLAUTHD_LDAP_BIND_DN=${SASLAUTHD_LDAP_BIND_DN}
+      - SASLAUTHD_LDAP_PASSWORD=${SASLAUTHD_LDAP_PASSWORD}
+      - SASLAUTHD_LDAP_SEARCH_BASE=${SASLAUTHD_LDAP_SEARCH_BASE}
+      - SASLAUTHD_LDAP_FILTER=${SASLAUTHD_LDAP_FILTER}
+      - SASLAUTHD_LDAP_START_TLS=${SASLAUTHD_LDAP_START_TLS}
+      - SASLAUTHD_LDAP_TLS_CHECK_PEER=${SASLAUTHD_LDAP_TLS_CHECK_PEER}
+      - SASL_PASSWD=${SASL_PASSWD}
+      - SRS_EXCLUDE_DOMAINS=${SRS_EXCLUDE_DOMAINS}
+      - SRS_SECRET=${SRS_SECRET}
+      - DEFAULT_RELAY_HOST=${DEFAULT_RELAY_HOST}
+      - RELAY_HOST=${RELAY_HOST}
+      - RELAY_PORT=${RELAY_PORT}
+      - RELAY_USER=${RELAY_USER}
+      - RELAY_PASSWORD=${RELAY_PASSWORD}
+    cap_add:
+      - NET_ADMIN
+      - SYS_PTRACE
+    restart: always
+
+  webmail:
+    image: drivereu/driver-roundcube
+    hostname: webmail
+    container_name: webmail
+    environment:
+      - ROUNDCUBEMAIL_DEFAULT_HOST=10.5.0.5
+      - ROUNDCUBEMAIL_SMTP_SERVER=10.5.0.5
+      - ROUNDCUBEMAIL_DEFAULT_PORT=143
+      - ROUNDCUBEMAIL_SMTP_PORT=25
+    ports:
+      - "3080:80"
+    networks:
+      static-network:
+        ipv4_address: 10.5.0.6
+      default:
+      backend:
+    depends_on:
+      - mailserver
+
+  mailgateway:
+    image: drivereu/driver-mailgateway
+    container_name: mailgateway
+    ports:
+      # websocket notifications
+      - "9996:9996"
+      # REST api
+      - "7891:7891"
+    environment:
+      - ApiMailServerUrl=http://10.5.0.5:3000
+      - LargeFileServiceUrl=http://large_file_service:9090/upload
+      - SmtpHost=10.5.0.5
+      - SmtpPort=25
+      - IMapHost=10.5.0.5
+      - IMapPort=993
+      - kafka_kafkaHost=broker:9092
+      - kafka_schemaRegistryUrl=schema_registry:3502
+      - kafka_mediaTopicName=simulation_entity_post
+      - kafka_connectToKafka=true
+      - server_port=7891
+    depends_on:
+      - mailserver
+      - broker
+      - large_file_service
+      - schema_registry
+    networks:
+      static-network:
+        ipv4_address: 10.5.0.10
+      default:
+    restart: always
+
+  mailmonitor:
+    image: drivereu/driver-mailmonitor
+    container_name: mailmonitor
+    ports:
+      - "4200:4200"
+    links:
+      - mailgateway
+    depends_on:
+      - mailgateway
+    networks:
+      static-network:
+        ipv4_address: 10.5.0.11
+      default:
+      backend:
+    restart: always
+
+volumes:
+  maildata:
+    driver: local
+  mailstate:
+    driver: local
+  mailconfig:
+    driver: local
+  trial-data:
+  certs:
+
+networks:
+  static-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 10.5.0.0/16
+          gateway: 10.5.0.1
+  backend:
+    driver: bridge
