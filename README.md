@@ -11,7 +11,6 @@ To run a technology-supported trial, exercise, training or table top, the EU-fun
 - Middleware, so different solutions/applications can exchange information with each other, receive (simulation) time information, and can exchange large files.
 - The Trial Management Tool (TMT), a scenario editor to inject messages/events into the middleware, triggering actions in role players, end-user applications or attached simulators.
 - Mail service, for exchanging messages between participants, and with the TMT.
-- Map service, for displaying geographic information, like a flood or earthquake overlays on a map.
 
 ## Installation
 
@@ -24,8 +23,14 @@ docker-compose pull
 docker-compose up -d
 ```
 
+And a home page should be available at [localhost](http://localhost).
+
 Or watch the instructions:
 
 ![Running the TTI](img/docker.gif)
 
 To show the status of all services, you can, for example, use `dockly` (you need to have [node.js](https://nodejs.org) installed), which you can install using `npm i -g dockly` (on Linux, this may require `sudo` privileges). Alternatively, you can simply do `docker ps`.
+
+## Using the mail service
+
+For detailed information, see [here](https://github.com/DRIVER-EU/email-gateway). First use the mail API to create a mail account, e.g. `test@strategy.eu`. Next, you can use that account to login via the Webmail UI (with the password 'default'). Alternatively, you can create mail accounts automatically by sending a `simulation_entity_post` message.
