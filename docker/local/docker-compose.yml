@@ -229,11 +229,6 @@ services:
       - "587:587"
       - "993:993"
       - "3000:3000"
-    networks:
-      static-network:
-        ipv4_address: 10.5.0.5
-      default:
-      backend:
     volumes:
       - maildata:/var/mail
       - mailstate:/var/mail-state
@@ -316,17 +311,12 @@ services:
     hostname: webmail
     container_name: webmail
     environment:
-      - ROUNDCUBEMAIL_DEFAULT_HOST=10.5.0.5
-      - ROUNDCUBEMAIL_SMTP_SERVER=10.5.0.5
+      - ROUNDCUBEMAIL_DEFAULT_HOST=${HOSTNAME}
+      - ROUNDCUBEMAIL_SMTP_SERVER=${HOSTNAME}
       - ROUNDCUBEMAIL_DEFAULT_PORT=143
       - ROUNDCUBEMAIL_SMTP_PORT=25
     ports:
       - "3080:80"
-    networks:
-      static-network:
-        ipv4_address: 10.5.0.6
-      default:
-      backend:
     depends_on:
       - mailserver
 
@@ -339,11 +329,11 @@ services:
       # REST api
       - "7891:7891"
     environment:
-      - ApiMailServerUrl=http://10.5.0.5:3000
+      - ApiMailServerUrl=http://${HOSTNAME}:3000
       - LargeFileServiceUrl=http://large_file_service:9090/upload
-      - SmtpHost=10.5.0.5
+      - SmtpHost=${HOSTNAME}
       - SmtpPort=25
-      - IMapHost=10.5.0.5
+      - IMapHost=${HOSTNAME}
       - IMapPort=993
       - kafka_kafkaHost=broker:9092
       - kafka_schemaRegistryUrl=schema_registry:3502
@@ -355,10 +345,6 @@ services:
       - broker
       - large_file_service
       - schema_registry
-    networks:
-      static-network:
-        ipv4_address: 10.5.0.10
-      default:
     restart: always
 
   mailmonitor:
@@ -370,11 +356,6 @@ services:
       - mailgateway
     depends_on:
       - mailgateway
-    networks:
-      static-network:
-        ipv4_address: 10.5.0.11
-      default:
-      backend:
     restart: always
 
 volumes:
@@ -387,12 +368,3 @@ volumes:
   trial-data:
   certs:
 
-networks:
-  static-network:
-    driver: bridge
-    ipam:
-      config:
-        - subnet: 10.5.0.0/16
-          gateway: 10.5.0.1
-  backend:
-    driver: bridge
