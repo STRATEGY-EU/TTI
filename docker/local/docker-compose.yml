@@ -146,9 +146,6 @@ services:
       - schema_registry
     ports:
       - "9090:9090"
-    networks:
-      - default
-      - backend
     environment:
       HOST: localhost
       PORT: 9090
@@ -268,7 +265,7 @@ services:
       - LDAP_START_TLS=
       - LDAP_SERVER_HOST=
       - LDAP_SEARCH_BASE=
-      - LDAP_BIND_DN=$
+      - LDAP_BIND_DN=
       - LDAP_BIND_PW=
       - LDAP_QUERY_FILTER_USER=
       - LDAP_QUERY_FILTER_GROUP=
