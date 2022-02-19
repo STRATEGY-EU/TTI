@@ -184,12 +184,12 @@ services:
       - 80:80
       - 443:443 # When running in production, turn it on
     environment:
-      hostname: localhost
+      hostname: cloud4.satways.net
       title: STRATEGY
       email: erik.vullings@tno.nl
       # ssl: true  # When running in production, and you want to use letsencrypt to get the certificates.
       tmt: trial_management_tool:3210
-      mail: webmail:80
+      mail: webmail:9000
       mailapi: mailmonitor:4200
       lfs: large_file_service:9090
       time: time_service:8100
