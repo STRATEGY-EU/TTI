@@ -189,7 +189,7 @@ services:
       email: erik.vullings@tno.nl
       # ssl: true  # When running in production, and you want to use letsencrypt to get the certificates.
       tmt: trial_management_tool:3210
-      mail: webmail:9000
+      mail: webmail:4201
       mailapi: mailmonitor:4200
       lfs: large_file_service:9090
       time: time_service:8100
@@ -203,7 +203,7 @@ services:
     depends_on:
       - broker
     ports:
-      - 9000:9000
+      - 7000:9000
     environment:
       hostname: kafdrop
       KAFKA_BROKERCONNECT: broker:9092
@@ -313,7 +313,7 @@ services:
       - ROUNDCUBEMAIL_DEFAULT_PORT=143
       - ROUNDCUBEMAIL_SMTP_PORT=25
     ports:
-      - "9000:80"
+      - "4201:80"
     depends_on:
       - mailserver
 
