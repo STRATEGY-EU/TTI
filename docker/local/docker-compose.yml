@@ -191,7 +191,7 @@ services:
       # ssl: true  # When running in production, and you want to use letsencrypt to get the certificates.
       tmt: trial_management_tool:3210
       mail: webmail:80
-      mailapi: mailmonitor:80
+      mailapi: mailmonitor:80/mailmonitor
       lfs: large_file_service:9090
       time: time_service:8100
       schemas: kafka_schema_registry_ui:8000
