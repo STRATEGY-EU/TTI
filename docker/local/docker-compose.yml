@@ -175,6 +175,7 @@ services:
 
   # This is a reverse proxy: if it doesn't run in combination with nginx,
   # we will ignore it for now.
+  # Use the INTERNAL port number for redirect!
   homepage:
     image: strategyeu/homepage:latest
     depends_on:
@@ -189,7 +190,7 @@ services:
       email: erik.vullings@tno.nl
       # ssl: true  # When running in production, and you want to use letsencrypt to get the certificates.
       tmt: trial_management_tool:3210
-      mail: webmail:4201
+      mail: webmail:80
       mailapi: mailmonitor:4200
       lfs: large_file_service:9090
       time: time_service:8100
