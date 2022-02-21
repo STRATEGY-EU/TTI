@@ -190,15 +190,16 @@ services:
       email: erik.vullings@tno.nl
       # ssl: true  # When running in production, and you want to use letsencrypt to get the certificates.
       tmt: trial_management_tool:3210
-      mail: webmail:80
-      mailapi: mailmonitor:80/mailmonitor
+      webmail: webmail:80
+      mailgateway: mailgateway:7891/mailgateway
+      mailmonitor: mailmonitor:80/mailmonitor
       lfs: large_file_service:9090
       time: time_service:8100
       schemas: kafka_schema_registry_ui:8000
       topics: kafka_topics_ui:8000
     volumes:
       - certs:/usr/src/app/certs # For saving the letsencrypt certificates
-
+      
   kafdrop:
     image: obsidiandynamics/kafdrop:latest
     depends_on:
@@ -214,7 +215,7 @@ services:
       CMD_ARGS: "--message.format=AVRO"
 
   mailserver:
-    image: drivereu/driver-mailserver
+    image: drivereu/driver-mailserver:latest
     depends_on:
       - broker
       - schema_registry
@@ -305,7 +306,7 @@ services:
     restart: always
 
   webmail:
-    image: drivereu/driver-roundcube
+    image: drivereu/driver-roundcube:latest
     hostname: webmail
     container_name: webmail
     environment:
@@ -319,7 +320,7 @@ services:
       - mailserver
 
   mailgateway:
-    image: drivereu/driver-mailgateway
+    image: drivereu/driver-mailgateway:latest
     container_name: mailgateway
     ports:
       # websocket notifications
@@ -327,7 +328,7 @@ services:
       # REST api
       - "7891:7891"
     environment:
-      - ApiMailServerUrl=http://dockermail:3000
+      - ApiMailServerUrl=http://dockermail:3000/mailapi
       - LargeFileServiceUrl=http://large_file_service:9090/upload
       - SmtpHost=dockermail
       - SmtpPort=25
@@ -346,8 +347,10 @@ services:
     restart: always
 
   mailmonitor:
-    image: drivereu/driver-mailmonitor
+    image: drivereu/driver-mailmonitor:latest
     container_name: mailmonitor
+    environment:
+      - serverRestApiUrl=http://cloud4.satways.net/mailgateway/api
     ports:
       - "4200:80"
     links:
@@ -365,4 +368,3 @@ volumes:
     driver: local
   trial-data:
   certs:
-
