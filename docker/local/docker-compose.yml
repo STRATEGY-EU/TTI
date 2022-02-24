@@ -151,7 +151,7 @@ services:
       PORT: 9090
 
   trial_management_tool:
-    image: drivereu/trial-management-tool:latest
+    image: strategyeu/trial-management-tool:latest
     depends_on:
       - broker
       - schema_registry
@@ -165,7 +165,7 @@ services:
       KAFKA_HOST: broker:9092
       SCHEMA_REGISTRY: http://schema_registry:3502
       TRIAL_MANAGER_SERVER_PORT: 3210
-      PRODUCE: simulation_session_mgmt,simulation_time_control,simulation_time_mgmt,simulation_entity_post,system_tm_role_player,system_request_change_of_trial_stage,system_tm_phase_message,system_large_data_update
+      PRODUCE: system_request_change_of_trial_stage,system_tm_phase_message,system_tm_role_player,simulation_session_mgmt,standard_cap,simulation_entity_post,send_file,named_json,simulation_request_startinject
       # SSL: "false"
       # SSL_PFX: certs/TB-TrialMgmt.p12
       # SSL_PASSPHRASE: changeit
@@ -189,7 +189,7 @@ services:
       title: STRATEGY
       email: erik.vullings@tno.nl
       # ssl: true  # When running in production, and you want to use letsencrypt to get the certificates.
-      tmt: trial_management_tool:3210
+      tmt: trial_management_tool:3210/tmt
       webmail: webmail:80
       mailgateway: mailgateway:7891/mailgateway
       mailmonitor: mailmonitor:80/mailmonitor
