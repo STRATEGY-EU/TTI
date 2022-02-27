@@ -185,7 +185,7 @@ services:
       - 80:80
       - 443:443 # When running in production, turn it on
     environment:
-      hostname: cloud4.satways.net
+      hostname: strategy.satways.net
       title: STRATEGY
       email: erik.vullings@tno.nl
       # ssl: true  # When running in production, and you want to use letsencrypt to get the certificates.
@@ -222,12 +222,12 @@ services:
     hostname: dockermail
     domainname: drivereu.com
     container_name: mailserver
-    ports:
-      - "25:25"
-      - "143:143"
-      - "587:587"
-      - "993:993"
-      - "3000:3000"
+#    ports:
+#      - "25:25"
+#      - "143:143"
+#      - "587:587"
+#      - "993:993"
+#      - "3000:3000"
     volumes:
       - maildata:/var/mail
       - mailstate:/var/mail-state
@@ -314,8 +314,9 @@ services:
       - ROUNDCUBEMAIL_SMTP_SERVER=dockermail
       - ROUNDCUBEMAIL_DEFAULT_PORT=143
       - ROUNDCUBEMAIL_SMTP_PORT=25
-    ports:
-      - "4201:80"
+      - REFRESH_TIME=5
+#    ports:
+#      - "4201:80"
     depends_on:
       - mailserver
 
@@ -351,8 +352,8 @@ services:
     container_name: mailmonitor
     environment:
       - serverRestApiUrl=http://cloud4.satways.net/mailgateway/api
-    ports:
-      - "4200:80"
+#    ports:
+#      - "4200:80"
     links:
       - mailgateway
     depends_on:
