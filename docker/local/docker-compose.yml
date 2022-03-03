@@ -137,6 +137,7 @@ services:
       KAFKA_BROKER_URL: broker:9092
       SCHEMA_REGISTRY_URL: http://schema_registry:3502
       AUTO_REGISTER_SCHEMAS: "true"
+    restart: on-failure  
 
   large_file_service:
     image: drivereu/large-file-service:latest
@@ -181,9 +182,9 @@ services:
     depends_on:
       - broker
       - schema_registry
-    ports:
-      - 80:80
-      - 443:443 # When running in production, turn it on
+#    ports:
+#      - 80:80
+#      - 443:443 # When running in production, turn it on
     environment:
       hostname: strategy.satways.net
       title: STRATEGY
@@ -199,6 +200,31 @@ services:
       topics: kafka_topics_ui:8000
     volumes:
       - certs:/usr/src/app/certs # For saving the letsencrypt certificates
+
+
+  nginx-proxy:
+    image: 'jc21/nginx-proxy-manager:latest'
+    restart: unless-stopped
+    ports:
+      # These ports are in format <host-port>:<container-port>
+      - '80:80' # Public HTTP Port
+      - '443:443' # Public HTTPS Port
+      - '81:81' # Admin Web Port
+      # Add any other Stream port you want to expose
+      # - '21:21' # FTP
+
+    # Uncomment the next line if you uncomment anything in the section
+    environment:
+      # Uncomment this if you want to change the location of 
+      # the SQLite DB file within the container
+      # DB_SQLITE_FILE: "/data/database.sqlite"
+
+      # Uncomment this if IPv6 is not enabled on your host
+      DISABLE_IPV6: 'true'
+
+    volumes:
+      - ./data:/data
+      - ./letsencrypt:/etc/letsencrypt
       
   kafdrop:
     image: obsidiandynamics/kafdrop:latest
@@ -350,8 +376,7 @@ services:
   mailmonitor:
     image: drivereu/driver-mailmonitor:latest
     container_name: mailmonitor
-    environment:
-      - serverRestApiUrl=http://cloud4.satways.net/mailgateway/api
+
 #    ports:
 #      - "4200:80"
     links:
