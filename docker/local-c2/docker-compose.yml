@@ -191,7 +191,7 @@ services:
       mailgateway: mailgateway:7891/mailgateway
       mailmonitor: mailmonitor:80/mailmonitor
       lfs: large_file_service:9090
-      time: time_service:8100
+      time: time_service:8100/time
       schemas: kafka_schema_registry_ui:8000
       topics: kafka_topics_ui:8000
     volumes:
