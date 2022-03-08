@@ -1,6 +1,8 @@
 # Local C2 demo
 This is a demo for the TMT integration with a C2 application.
 
+![TTI demo](img/tti_demo.gif)
+
 ## Steps to get started
 1. run `docker compose up -d`
 2. Go to the [homepage](http://localhost)
@@ -17,3 +19,5 @@ This is a demo for the TMT integration with a C2 application.
 1. Click on the scenario's name
 2. navigate to the `scenarios` tab
 3. You can now change the injects
+
+![Starting the TTI docker demo](img/tti_demo_start_docker.gif)
