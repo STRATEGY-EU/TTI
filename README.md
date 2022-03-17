@@ -42,14 +42,6 @@ A typical approach to connect your system to the TTI is as follows:
 7. Check if the schema has been registered using the [Kafka schema UI](http://localhost:3601).
 8. Send a message to the new topic (`my_name`, exclude `-value`).
 9. Check if the message has been received using the [Kafka topics UI](http://localhost:3600).1. Run [TTI](https://github.com/STRATEGY-EU/TTI/tree/main/docker/local-c2) locally
-2. Choose an [adapter](https://github.com/DRIVER-EU) and integrate it in your system
-3. Connect to the local TTI (configuring the adapter)
-4. Create a new [AVRO message schema](https://toolslick.com/generation/metadata/avro-schema-from-json) or select an [existing schema](https://github.com/STRATEGY-EU/TTI/tree/main/docker/local-c2/schemas).
-5. Name the schema (`my_name-value.avsc`) and add it to the schemas folder of the TTI.
-6. Restart the TTI (`docker-compose up -d`) so the bootstrapper will register the new schema.
-7. Check if the schema has been registered using the [Kafka schema UI](http://localhost:3601).
-8. Send a message to the new topic (`my_name`, exclude `-value`).
-9. Check if the message has been received using the [Kafka topics UI](http://localhost:3600).
 10. To receive messages, check that the schema is available and subscribe to the topic.
 11. Use the TMT to create messages and send them to the TTI (check as in 9).
 12. Your adapter should receive these messages too, and you can handle them appropriately.
