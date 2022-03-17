@@ -31,6 +31,20 @@ Or watch the instructions:
 
 To show the status of all services, you can, for example, use `dockly` (you need to have [node.js](https://nodejs.org) installed), which you can install using `npm i -g dockly` (on Linux, this may require `sudo` privileges). Alternatively, you can simply do `docker ps`.
 
+## Connection to the TTI
+
+A typical approach to connect your system to the TTI is as follows:
+
+1. Run [TTI](https://github.com/STRATEGY-EU/TTI/tree/main/docker/local-c2) locally
+2. Choose an [adapter](https://github.com/DRIVER-EU) and integrate it in your system
+3. Connect to the local TTI (configuring the adapter)
+4. Create a new [AVRO message schema](https://toolslick.com/generation/metadata/avro-schema-from-json) or select an [existing schema](https://github.com/STRATEGY-EU/TTI/tree/main/docker/local-c2/schemas).
+5. Name the schema (`my_name-value.avsc`) and add it to the schemas folder of the TTI.
+6. Restart the TTI (`docker-compose up -d`) so the bootstrapper will register the new schema.
+7. Check if the schema has been registered using the [Kafka schema UI](http://localhost:3601).
+8. Send a message to the new topic (`my_name`, exclude `-value`).
+9. Check if the message has been received using the [Kafka topics UI](http://localhost:3600).
+
 ## Using the mail service
 
 For detailed information, see [here](https://github.com/DRIVER-EU/email-gateway). First use the mail API to create a mail account, e.g. `test@strategy.eu`. Next, you can use that account to login via the Webmail UI (with the password 'default'). Alternatively, you can create mail accounts automatically by sending a `simulation_entity_post` message.
