@@ -147,7 +147,7 @@ services:
       PORT: 9090
 
   trial_management_tool:
-    image: strategyeu/trial-management-tool:test_image
+    image: strategyeu/trial-management-tool:latest
     depends_on:
       - broker
       - schema_registry
@@ -161,7 +161,7 @@ services:
       KAFKA_HOST: broker:9092
       SCHEMA_REGISTRY: http://schema_registry:3502
       TRIAL_MANAGER_SERVER_PORT: 3210
-      SERVER: "http://localhost/tmt"
+      SERVER: http://localhost/tmt
       PRODUCE: system_request_change_of_trial_stage,system_tm_phase_message,system_tm_role_player,simulation_session_mgmt,standard_cap,simulation_entity_post,send_file,send_message,named_json,simulation_request_startinject,cbrn_geojson,chemical_incident,resource,simulation_entity_featurecollection
       # SSL: "false"
       # SSL_PFX: certs/TB-TrialMgmt.p12
