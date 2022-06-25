@@ -115,51 +115,49 @@ services:
       SLEEP: 20000 # Wait before registering schemas
       KAFKA_HOST: broker:9092
       SCHEMA_REGISTRY: schema_registry:8081
-      PRODUCE_TOPICS: simulation_entity_item,simulation_time_mgmt,system_topic_access_invite,simulation_request_startinject,simulation_entity_post,standard_named_geojson,system_heartbeat,system_logging,system_request_change_of_trial_stage,system_tm_phase_message,system_tm_role_player,simulation_session_mgmt,standard_cap,send_file,send_message,named_json,simulation_request_startinject,cbrn_geojson,chemical_incident,resource,simulation_entity_featurecollection
+      PRODUCE_TOPICS: simulation_entity_item,simulation_time_mgmt,system_topic_access_invite,simulation_request_startinject,simulation_entity_post,standard_named_geojson,system_heartbeat,system_logging,system_request_change_of_trial_stage,system_tm_phase_message,system_tm_role_player,simulation_session_mgmt,standard_cap,named_json,simulation_request_startinject,cbrn_geojson,chemical_incident,resource,simulation_entity_featurecollection
     restart: on-failure
     volumes:
       - ./schemas:/app/src/schemas
 
-volumes:
-  trial-data:
-
   # Enable if you want to use the TMT - In that case, move the volumes section to the bottom
 
-  # trial_management_tool:
-  #   image: strategyeu/trial-management-tool:latest
-  #   depends_on:
-  #     - broker
-  #     - schema_registry
-  #   links:
-  #     - broker
-  #     - schema_registry
-  #   ports:
-  #     - "3210:3210"
-  #   environment:
-  #     CLIENT_ID: TB-TrialMgmt
-  #     KAFKA_HOST: broker:9092
-  #     SCHEMA_REGISTRY: schema_registry:8081
-  #     TRIAL_MANAGER_SERVER_PORT: 3210
-  #     SERVER: http://localhost/tmt
-  #      PRODUCE: send_file,send_message,system_request_change_of_trial_stage,system_tm_phase_message,system_tm_role_player,simulation_session_mgmt,standard_cap,simulation_entity_post,send_file,send_message,named_json,simulation_request_startinject,cbrn_geojson,chemical_incident,resource,simulation_entity_featurecollection
-  #   volumes:
-  #     - trial-data:/app/trials
-  # time_service:
-  #   image: drivereu/test-bed-time-service:latest
-  #   hostname: time_service
-  #   depends_on:
-  #     - broker
-  #     - schema_registry
-  #   links:
-  #     - broker
-  #     - schema_registry
-  #   ports:
-  #     - "8100:8100"
-  #   environment:
-  #     KAFKA_BROKER_URL: broker:9092
-  #     SCHEMA_REGISTRY_URL: http://schema_registry:3502
-  #     AUTO_REGISTER_SCHEMAS: "true"
-  #   restart: on-failure
+  #trial_management_tool:
+  #  image: strategyeu/trial-management-tool:latest
+  #  depends_on:
+  #    - broker
+  #    - schema_registry
+  #  links:
+  #    - broker
+  #    - schema_registry
+  #  ports:
+  #    - "3210:3210"
+  #  environment:
+  #    CLIENT_ID: TB-TrialMgmt
+  #    KAFKA_HOST: broker:9092
+  #    SCHEMA_REGISTRY: schema_registry:8081
+  #    TRIAL_MANAGER_SERVER_PORT: 3210
+  #    SERVER: http://localhost/tmt
+  #    PRODUCE: system_request_change_of_trial_stage,system_tm_phase_message,system_tm_role_player,simulation_session_mgmt,standard_cap,simulation_entity_post,named_json,simulation_request_startinject,cbrn_geojson,chemical_incident,resource,simulation_entity_featurecollection
+  #  volumes:
+  #    - trial-data:/app/trials
+
+  #time_service:
+  #  image: drivereu/test-bed-time-service:latest
+  #  hostname: time_service
+  #  depends_on:
+  #    - broker
+  #    - schema_registry
+  #  links:
+  #    - broker
+  #    - schema_registry
+  #  ports:
+  #    - "8100:8100"
+  #  environment:
+  #    KAFKA_BROKER_URL: broker:9092
+  #    SCHEMA_REGISTRY_URL: http://schema_registry:3502
+  #    AUTO_REGISTER_SCHEMAS: "true"
+  #  restart: on-failure
 
   # ONLY REQUIRED IF YOU WANT TO SEND VERY LARGE FILES
   # large_file_service:
@@ -173,3 +171,6 @@ volumes:
   #   environment:
   #     HOST: localhost
   #     PORT: 9090
+
+volumes:
+  trial-data:

@@ -200,7 +200,7 @@ services:
       SCHEMA_REGISTRY: http://schema_registry:3502
       TRIAL_MANAGER_SERVER_PORT: 3210
       SERVER: http://localhost/tmt
-      PRODUCE: system_request_change_of_trial_stage,system_tm_phase_message,system_tm_role_player,simulation_session_mgmt,standard_cap,simulation_entity_post,send_file,named_json,simulation_request_startinject
+      PRODUCE: system_request_change_of_trial_stage,system_tm_phase_message,system_tm_role_player,simulation_session_mgmt,standard_cap,simulation_entity_post,named_json,simulation_request_startinject
       # SSL: "false"
       # SSL_PFX: certs/TB-TrialMgmt.p12
       # SSL_PASSPHRASE: changeit

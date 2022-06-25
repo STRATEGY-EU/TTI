@@ -112,7 +112,7 @@ services:
     environment:
       KAFKA_HOST: broker:9092
       SCHEMA_REGISTRY: http://schema_registry:3502
-      PRODUCE_TOPICS: simulation_entity_item,simulation_time_mgmt,system_topic_access_invite,simulation_request_startinject,simulation_entity_post,standard_named_geojson,system_heartbeat,system_logging,system_request_change_of_trial_stage,system_tm_phase_message,system_tm_role_player,simulation_session_mgmt,standard_cap,send_file,send_message,named_json,simulation_request_startinject,cbrn_geojson,chemical_incident,resource,simulation_entity_featurecollection,parking
+      PRODUCE_TOPICS: simulation_entity_item,simulation_time_mgmt,system_topic_access_invite,simulation_request_startinject,simulation_entity_post,standard_named_geojson,system_heartbeat,system_logging,system_request_change_of_trial_stage,system_tm_phase_message,system_tm_role_player,simulation_session_mgmt,standard_cap,named_json,simulation_request_startinject,cbrn_geojson,chemical_incident,resource,simulation_entity_featurecollection,parking
     restart: on-failure
     volumes:
       - ./schemas:/app/src/schemas
@@ -162,7 +162,7 @@ services:
       SCHEMA_REGISTRY: http://schema_registry:3502
       TRIAL_MANAGER_SERVER_PORT: 3210
       SERVER: http://localhost/tmt
-      PRODUCE: system_request_change_of_trial_stage,system_tm_phase_message,system_tm_role_player,simulation_session_mgmt,standard_cap,simulation_entity_post,send_file,send_message,named_json,simulation_request_startinject,cbrn_geojson,chemical_incident,resource,simulation_entity_featurecollection
+      PRODUCE: system_request_change_of_trial_stage,system_tm_phase_message,system_tm_role_player,simulation_session_mgmt,standard_cap,simulation_entity_post,named_json,simulation_request_startinject,cbrn_geojson,chemical_incident,resource,simulation_entity_featurecollection
       # SSL: "false"
       # SSL_PFX: certs/TB-TrialMgmt.p12
       # SSL_PASSPHRASE: changeit
