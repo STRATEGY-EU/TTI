@@ -25,8 +25,8 @@ services:
     environment:
       KAFKA_BROKER_ID: 1
       KAFKA_ZOOKEEPER_CONNECT: "zookeeper:2181"
-      KAFKA_LISTENERS: LISTENER_BOB://broker:29092,LISTENER_FRED://broker:9092,LISTENER_ALICE://broker:3501
-      KAFKA_ADVERTISED_LISTENERS: LISTENER_BOB://broker:29092,LISTENER_FRED://localhost:9092,LISTENER_ALICE://${HOST}:3501
+      KAFKA_LISTENERS: LISTENER_BOB://${BROKER},LISTENER_FRED://broker:9092,LISTENER_ALICE://broker:3501
+      KAFKA_ADVERTISED_LISTENERS: LISTENER_BOB://${BROKER},LISTENER_FRED://localhost:9092,LISTENER_ALICE://${HOST}:3501
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: LISTENER_BOB:PLAINTEXT,LISTENER_FRED:PLAINTEXT,LISTENER_ALICE:PLAINTEXT
       KAFKA_INTER_BROKER_LISTENER_NAME: LISTENER_BOB
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
@@ -39,7 +39,7 @@ services:
       KAFKA_JMX_PORT: 9101
       KAFKA_JMX_HOSTNAME: broker
       KAFKA_JMX_OPTS: -Dcom.sun.management.jmxremote -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.ssl=false -Djava.rmi.server.hostname=broker -Dcom.sun.management.jmxremote.rmi.port=9101
-      KAFKA_CONFLUENT_SCHEMA_REGISTRY_URL: http://schema-registry:8081
+      KAFKA_CONFLUENT_SCHEMA_REGISTRY_URL: ${SCHEMA}
 
   schema-registry:
     image: confluentinc/cp-schema-registry:7.3.1
@@ -51,5 +51,347 @@ services:
       - "3502:8081"
     environment:
       SCHEMA_REGISTRY_HOST_NAME: schema-registry
-      SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS: "broker:29092"
+      SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS: "${BROKER}"
       SCHEMA_REGISTRY_LISTENERS: http://0.0.0.0:8081
+
+  # For inspecting KAFKA
+
+  kafka-ui:
+    container_name: kafka-ui
+    image: provectuslabs/kafka-ui:latest
+    ports:
+      - 3600:8080
+    depends_on:
+      - zookeeper
+      - broker
+      - schema-registry
+    environment:
+      KAFKA_CLUSTERS_0_NAME: local
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: ${BROKER}
+      KAFKA_CLUSTERS_0_ZOOKEEPER: zookeeper:2181
+      KAFKA_CLUSTERS_0_JMXPORT: 9101
+      KAFKA_CLUSTERS_0_SCHEMAREGISTRY: ${SCHEMA}
+      # KAFKA_CLUSTERS_0_KAFKACONNECT_0_NAME: first
+      # KAFKA_CLUSTERS_0_KAFKACONNECT_0_ADDRESS: http://kafka-connect0:8083
+
+  bootstrapper:
+    container_name: osint_bootstrapper
+    image: drivereu/silent-producer:latest
+    hostname: bootstrapper
+    depends_on:
+      - zookeeper
+      - broker
+      - schema-registry
+    environment:
+      SLEEP: 20000 # Wait before registering schemas
+      KAFKA_HOST: ${BROKER}
+      SCHEMA_REGISTRY: ${SCHEMA}
+      PARTITION_SPECIFICATION: system_heartbeat:1:360000
+    restart: on-failure
+    volumes:
+      - ./schemas:/app/src/schemas
+
+  trial_management_tool:
+    profiles: ["tmt"]
+    image: strategyeu/trial-management-tool
+    depends_on:
+      - broker
+      - schema-registry
+      - bootstrapper
+    links:
+      - broker
+      - schema-registry
+    ports:
+      - "3210:3210"
+    environment:
+      CLIENT_ID: TB-TrialMgmt
+      KAFKA_HOST: ${BROKER}
+      SCHEMA_REGISTRY: ${SCHEMA}
+      TRIAL_MANAGER_SERVER_PORT: 3210
+      SERVER: http://localhost/tmt
+      PRODUCE: system_request_change_of_trial_stage,system_tm_phase_message,system_tm_role_player,simulation_session_mgmt,standard_cap,simulation_entity_post,named_json,simulation_request_startinject,cbrn_geojson,chemical_incident,resource,simulation_entity_featurecollection
+    volumes:
+      - trial-data:/app/trials
+
+  time_service:
+    profiles: ["tmt"]
+    image: drivereu/test-bed-time-service:latest
+    hostname: time_service
+    depends_on:
+      - broker
+      - schema-registry
+    links:
+      - broker
+      - schema-registry
+    ports:
+      - "8100:8100"
+    environment:
+      KAFKA_BROKER_URL: ${BROKER}
+      SCHEMA_REGISTRY_URL: ${SCHEMA}
+      AUTO_REGISTER_SCHEMAS: "false"
+    restart: on-failure
+
+  ost_db:
+    profiles: ["ost"]
+    image: postgres:9.6
+    hostname: ost_db
+    container_name: ost_db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ktHo8mv7Xzq7nDN5YpLwfgDp3T2cPEY9nhooA6GE2ktz9jH8rLLTtNnT8UHgYvcUypDFuK2y
+      POSTGRES_DB: TRIAL_ADMIN
+    volumes:
+      - ./postgresql/data:/var/lib/postgresql/data
+    restart: unless-stopped
+
+  ost_api:
+    profiles: ["ost"]
+    image: drivereu/ost_backend:without_keycloak
+    hostname: ost_api
+    container_name: ost_api
+    links:
+      - ost_db
+    ports:
+      - "8080:8080"
+    environment:
+      - OST_DB_HOST=ost_db
+      - OST_DB_PORT=5432
+      - OST_DB_NAME=TRIAL_ADMIN
+      - OST_DB_USER=postgres
+      - OST_DB_PASSWORD=ktHo8mv7Xzq7nDN5YpLwfgDp3T2cPEY9nhooA6GE2ktz9jH8rLLTtNnT8UHgYvcUypDFuK2y
+      - DRIVER_IS_TESTBED_ON=false
+    restart: unless-stopped
+
+  ost_web:
+    profiles: ["ost"]
+    image: drivereu/ost_frontend:without_keycloak
+    hostname: ost_web
+    container_name: ost_web
+    links:
+      - ost_db
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./certificates:/usr/share/certificates
+    restart: unless-stopped
+
+  large_file_service:
+    profiles: ["lfs"]
+    image: drivereu/large-file-service:latest
+    hostname: large_file_service
+    restart: unless-stopped
+    depends_on:
+      - broker
+      - schema-registry
+    ports:
+      - "9090:9090"
+    environment:
+      HOST: localhost
+      PORT: 9090
+    # networks:
+    #   - proxy_tti_network
+    #   - default
+
+  # This is a reverse proxy: if it doesn't run in combination with nginx,
+  # we will ignore it for now.
+  # Use the INTERNAL port number for redirect!
+  homepage:
+    profiles: ["homepage"]
+    image: strategyeu/homepage:latest
+    hostname: homepage
+    restart: unless-stopped
+    depends_on:
+      - broker
+      - schema-registry
+    #    ports:
+    #      - "80:80"
+    #      - "443:443" # When running in production, turn it on
+    environment:
+      hostname: strategy.satways.net
+      title: STRATEGY
+      email: erik.vullings@tno.nl
+      # ssl: true  # When running in production, and you want to use letsencrypt to get the certificates.
+      tmt: trial_management_tool:3210/tmt
+      webmail: webmail:80
+      mailgateway: mailgateway:7891/mailgateway
+      mailmonitor: mailmonitor:80/mailmonitor
+      lfs: large_file_service:9090
+      time: time_service:8100/time
+      schemas: kafka_schema_registry_ui:8000
+      topics: kafka_topics_ui:8000
+    volumes:
+      - certs:/usr/src/app/certs # For saving the letsencrypt certificates
+
+  # Mail
+  mailserver:
+    profiles: ["mail"]
+    image: drivereu/driver-mailserver:latest
+    depends_on:
+      - broker
+      - schema-registry
+    hostname: dockermail
+    domainname: drivereu.com
+    restart: unless-stopped
+    container_name: mailserver
+    #    ports:
+    #      - "25:25"
+    #      - "143:143" # imap unsecure
+    #      - "587:587"
+    #      - "993:993" # secure imap
+    #      - "3000:3000"
+    volumes:
+      - maildata:/var/mail
+      - mailstate:/var/mail-state
+      - mailconfig:/tmp/docker-mailserver/
+    environment:
+      - DMS_DEBUG=1
+      - ENABLE_CLAMAV=0
+      - ONE_DIR=0
+      - ENABLE_POP3=
+      - ENABLE_FAIL2BAN=0
+      - ENABLE_MANAGESIEVE=
+      - OVERRIDE_HOSTNAME=
+      - POSTMASTER_ADDRESS=
+      - POSTSCREEN_ACTION=enforce
+      - REPORT_RECIPIENT=0
+      - REPORT_SENDER=
+      - REPORT_INTERVAL=daily
+      - SMTP_ONLY=
+      - SSL_TYPE=
+      - TLS_LEVEL=
+      - SPOOF_PROTECTION=
+      - ENABLE_SRS=0
+      - PERMIT_DOCKER=
+      - VIRUSMAILS_DELETE_DELAY=
+      - ENABLE_POSTFIX_VIRTUAL_TRANSPORT=
+      - POSTFIX_DAGENT=
+      - POSTFIX_MAILBOX_SIZE_LIMIT=
+      - POSTFIX_MESSAGE_SIZE_LIMIT=
+      - ENABLE_SPAMASSASSIN=0
+      - SA_TAG=2.0
+      - SA_TAG2=6.31
+      - SA_KILL=6.31
+      - SA_SPAM_SUBJECT=***SPAM*****
+      - ENABLE_FETCHMAIL=0
+      - FETCHMAIL_POLL=300
+      - ENABLE_LDAP=
+      - LDAP_START_TLS=
+      - LDAP_SERVER_HOST=
+      - LDAP_SEARCH_BASE=
+      - LDAP_BIND_DN=
+      - LDAP_BIND_PW=
+      - LDAP_QUERY_FILTER_USER=
+      - LDAP_QUERY_FILTER_GROUP=
+      - LDAP_QUERY_FILTER_ALIAS=
+      - LDAP_QUERY_FILTER_DOMAIN=
+      - DOVECOT_TLS=
+      - DOVECOT_USER_FILTER=
+      - DOVECOT_PASS_FILTER=
+      - ENABLE_POSTGREY=0
+      - POSTGREY_DELAY=300
+      - POSTGREY_MAX_AGE=35
+      - POSTGREY_AUTO_WHITELIST_CLIENTS=5
+      - POSTGREY_TEXT=Delayed by postgrey
+      - ENABLE_SASLAUTHD=0
+      - SASLAUTHD_MECHANISMS=
+      - SASLAUTHD_MECH_OPTIONS=
+      - SASLAUTHD_LDAP_SERVER=
+      - SASLAUTHD_LDAP_SSL=
+      - SASLAUTHD_LDAP_BIND_DN=
+      - SASLAUTHD_LDAP_PASSWORD=
+      - SASLAUTHD_LDAP_SEARCH_BASE=
+      - SASLAUTHD_LDAP_FILTER=
+      - SASLAUTHD_LDAP_START_TLS=
+      - SASLAUTHD_LDAP_TLS_CHECK_PEER=
+      - SASL_PASSWD=
+      - SRS_EXCLUDE_DOMAINS=
+      - SRS_SECRET=
+      - DEFAULT_RELAY_HOST=
+      - RELAY_HOST=
+      - RELAY_PORT=
+      - RELAY_USER=
+      - RELAY_PASSWORD=
+    cap_add:
+      - NET_ADMIN
+      - SYS_PTRACE
+    # networks:
+    #   - proxy_tti_network
+    #   - default
+
+  webmail:
+    profiles: ["mail"]
+    image: drivereu/driver-roundcube:latest
+    hostname: webmail
+    container_name: webmail
+    restart: unless-stopped
+    environment:
+      - ROUNDCUBEMAIL_DEFAULT_HOST=dockermail
+      - ROUNDCUBEMAIL_SMTP_SERVER=dockermail
+      - ROUNDCUBEMAIL_DEFAULT_PORT=143
+      - ROUNDCUBEMAIL_SMTP_PORT=25
+      - REFRESH_TIME=5
+    #    ports:
+    #      - "4201:80"
+    depends_on:
+      - mailserver
+    # networks:
+    #   - proxy_tti_network
+    #   - default
+
+  mailgateway:
+    profiles: ["mail"]
+    image: drivereu/driver-mailgateway:latest
+    container_name: mailgateway
+    restart: unless-stopped
+    #    ports:
+    #      # websocket notifications
+    #      - "9996:9996"
+    #      # REST api
+    #      - "7891:7891"
+    environment:
+      - ApiMailServerUrl=http://dockermail:3000/mailapi
+      - LargeFileServiceUrl=http://large_file_service:9090/upload
+      - SmtpHost=dockermail
+      - SmtpPort=25
+      - IMapHost=dockermail
+      - IMapPort=993
+      - kafka_kafkaHost=broker:9092
+      - kafka_schemaRegistryUrl=schema-registry:3502
+      - kafka_mediaTopicName=simulation_entity_post
+      - kafka_connectToKafka=true
+      - server_port=7891
+    depends_on:
+      - mailserver
+      - broker
+      - large_file_service
+      - schema-registry
+    # networks:
+    #   - proxy_tti_network
+    #   - default
+
+  mailmonitor:
+    profiles: ["mail"]
+    image: drivereu/driver-mailmonitor:latest
+    container_name: mailmonitor
+    restart: unless-stopped
+    #    ports:
+    #      - "4200:80"
+    links:
+      - mailgateway
+    depends_on:
+      - mailgateway
+    # networks:
+    #   - proxy_tti_network
+    #   - default
+
+volumes:
+  maildata:
+    driver: local
+  mailstate:
+    driver: local
+  mailconfig:
+    driver: local
+  trial-data:
+  certs:
+  database-OST:
