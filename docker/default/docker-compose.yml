@@ -75,13 +75,15 @@ services:
       # KAFKA_CLUSTERS_0_KAFKACONNECT_0_ADDRESS: http://kafka-connect0:8083
 
   bootstrapper:
-    container_name: osint_bootstrapper
-    image: drivereu/silent-producer:latest
+    container_name: bootstrapper
+    image: drivereu/silent-producer:3.0.3
+    # image: silent-producer:latest
     hostname: bootstrapper
     depends_on:
       - zookeeper
       - broker
       - schema-registry
+      - kafka-ui
     environment:
       SLEEP: 20000 # Wait before registering schemas
       KAFKA_HOST: ${BROKER}
